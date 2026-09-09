@@ -90,7 +90,7 @@ export const DiscordPostExportModal: React.FC<DiscordPostExportModalProps> = ({
 
     if (includeIp) {
       lines.push('');
-      lines.push(`🎮 **Сервер LatzLand SMP:** \`play.latzland.eu\` *(26.2)*`);
+      lines.push(`🎮 **Сервер LatzLand:** \`play.latzland.eu\` *(26.2)*`);
     }
 
     return lines.join('\n');

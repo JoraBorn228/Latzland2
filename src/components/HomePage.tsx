@@ -365,10 +365,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Icon + Title */}
           <div className="hp-hero-title">
             <div className="flex items-center justify-center gap-4 mb-5">
-              <div className="relative w-16 h-16 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
-                <Pickaxe className="w-8 h-8 text-emerald-400" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center">
-                  <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-2 bg-gradient-to-br from-[#00e676]/25 via-[#091510] to-[#00d2ff]/20 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_35px_rgba(0,230,118,0.35)] group">
+                <img
+                  src="/logo2.png"
+                  alt="LatzLand Crest"
+                  className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition-transform duration-300"
+                />
+                <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-emerald-400/20 border border-emerald-400/50 flex items-center justify-center backdrop-blur-sm shadow-[0_0_10px_#00e676]">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />
                 </div>
               </div>
             </div>
@@ -390,7 +394,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Description */}
           <p className="hp-hero-desc text-sm sm:text-base text-neutral-400 max-w-2xl mx-auto leading-relaxed mb-10">
             Добро пожаловать в живую летопись{' '}
-            <span className="text-emerald-400 font-medium">LatzLand SMP</span> —
+            <span className="text-emerald-400 font-medium">LatzLand</span> —
             Minecraft-сервера с богатой историей. Здесь хранятся все ключевые события: войны и союзы,
             великие постройки и рейды, внутрисерверная политика и личные истории игроков.{' '}
             <span className="text-neutral-300">Изучай хронологию, находи себя в базе игроков,

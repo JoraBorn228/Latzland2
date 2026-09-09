@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { MinecraftServerStatus, ServerAnalyticsData, PlayerProfile, ServerOnlineSnapshot } from '../types';
 import { PlayerAvatar } from './PlayerAvatar';
-import { formatPlaytime } from '../utils/playerUtils';
 
 interface ServerStatusBarProps {
   status: MinecraftServerStatus;
@@ -57,23 +56,27 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
   const recentSnapshots = (analytics?.hourlySnapshots || []).slice(-24);
   const maxHourlyOnline = Math.max(
     1,
-    ...recentSnapshots.map((s) => s.onlineCount),
+    ...recentSnapshots.map((s) => (typeof s.maxOnline === 'number' ? s.maxOnline : s.onlineCount)),
     analytics?.peakOnline || 0
   );
 
-  // Format hour in user's local timezone (e.g. 23ч for MSK UTC+3 when server is in UTC)
+  // Format hour in user's local timezone (e.g. 23:00)
   const formatLocalHour = (snap: ServerOnlineSnapshot): string => {
     try {
       if (snap.timestamp) {
         const d = new Date(snap.timestamp);
         if (!isNaN(d.getTime())) {
-          return `${d.getHours()}ч`;
+          return `${String(d.getHours()).padStart(2, '0')}:00`;
         }
       }
     } catch {
       // fallback
     }
-    return snap.timeLabel ? `${snap.timeLabel.split(':')[0]}ч` : '';
+    if (snap.timeLabel) {
+      const parts = snap.timeLabel.split(':');
+      return `${parts[0].padStart(2, '0')}:00`;
+    }
+    return '';
   };
 
   // Format full date & time in user's local timezone for tooltip
@@ -103,39 +106,43 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
   };
 
   return (
-    <div className="relative mb-6 rounded-2xl bg-[#141414] border border-white/10 p-4 sm:p-5 shadow-xl overflow-hidden group hover:border-white/20 transition-all">
+    <div className="relative mb-6 rounded-2xl basalt-card border border-white/10 p-4 sm:p-5 shadow-2xl overflow-hidden group hover:border-white/20 transition-all">
+      {/* Top neon accent line */}
+      <div
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, rgba(0,230,118,0.5) 20%, rgba(0,210,255,0.6) 60%, rgba(192,132,252,0.4) 90%, transparent 100%)',
+        }}
+      />
+
       {/* Subtle background glow when online */}
       {status.online && (
-        <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#00e676]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-br from-[#00e676]/15 to-[#00d2ff]/10 rounded-full blur-3xl pointer-events-none" />
       )}
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Left: Server Icon & Address & Version */}
         <div className="flex items-start sm:items-center gap-3.5">
-          {/* Server Favicon / Icon */}
-          <div className="relative shrink-0">
-            {status.icon ? (
+          {/* Server Favicon / Emblem with logo2.png */}
+          <div className="relative shrink-0 group/emblem">
+            <div className="w-12 h-12 rounded-xl p-1 bg-gradient-to-br from-[#00e676]/25 via-[#091510] to-[#00d2ff]/20 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_16px_rgba(0,230,118,0.25)] group-hover/emblem:shadow-[0_0_24px_rgba(0,230,118,0.45)] transition-all">
               <img
-                src={status.icon}
-                alt="LatzLand Server Icon"
-                className="w-12 h-12 rounded-xl object-cover border border-white/15 shadow-md"
-                style={{ imageRendering: 'pixelated' }}
+                src="/logo2.png"
+                alt="LatzLand Emblem"
+                className="w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] group-hover/emblem:scale-105 transition-transform"
               />
-            ) : (
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00e676]/20 to-emerald-900/40 border border-[#00e676]/30 flex items-center justify-center text-[#00e676] shadow-md">
-                <Server className="w-6 h-6" />
-              </div>
-            )}
+            </div>
 
             {/* Online/Offline Status Indicator Dot */}
             <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
               {status.online ? (
                 <>
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00e676] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#00e676] border-2 border-[#141414]"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#00e676] border-2 border-[#090c12] shadow-[0_0_8px_#00e676]"></span>
                 </>
               ) : (
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500 border-2 border-[#141414]"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500 border-2 border-[#090c12]"></span>
               )}
             </span>
           </div>
@@ -143,7 +150,7 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-extrabold text-white text-base sm:text-lg tracking-tight">
-                LatzLand SMP
+                LatzLand
               </span>
 
               {/* Version Badge */}
@@ -154,9 +161,9 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
 
               {/* Status pill */}
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
                   status.online
-                    ? 'bg-[#00e676]/15 border border-[#00e676]/30 text-[#00e676]'
+                    ? 'bg-[#00e676]/15 border border-[#00e676]/40 text-[#00e676] shadow-[0_0_10px_rgba(0,230,118,0.2)]'
                     : 'bg-red-500/15 border border-red-500/30 text-red-400'
                 }`}
               >
@@ -167,7 +174,7 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
               {/* Peak Online record pill */}
               {analytics && analytics.peakOnline > 0 && (
                 <span
-                  className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                  className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.2)]"
                   title="Пиковый рекорд онлайна игроков"
                 >
                   <TrendingUp className="w-3 h-3 text-amber-400" />
@@ -181,11 +188,11 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
               <button
                 type="button"
                 onClick={copyIp}
-                className="group/btn inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00e676]/40 transition-all text-xs font-mono text-neutral-200"
+                className="group/btn inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/40 hover:bg-black/70 border border-white/10 hover:border-[#00e676]/50 transition-all text-xs font-mono text-neutral-200 shadow-sm"
                 title="Нажмите, чтобы скопировать IP"
               >
                 <Globe className="w-3 h-3 text-neutral-400 group-hover/btn:text-[#00e676] transition-colors" />
-                <span>{status.ip}</span>
+                <span className="font-semibold">{status.ip}</span>
                 {copied ? (
                   <Check className="w-3 h-3 text-[#00e676]" />
                 ) : (
@@ -206,15 +213,15 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
           <button
             type="button"
             onClick={() => setShowAnalytics(!showAnalytics)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
               showAnalytics
-                ? 'bg-[#00e676]/20 border-[#00e676]/40 text-[#00e676]'
+                ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_14px_rgba(0,210,255,0.3)]'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-neutral-300 hover:text-white'
             }`}
             title="График почасового онлайна и статистика игроков"
           >
-            <BarChart3 className="w-4 h-4" />
-            <span className="hidden sm:inline">Почасовой онлайн</span>
+            <BarChart3 className="w-4 h-4 text-cyan-400" />
+            <span className="hidden sm:inline">Эквалайзер онлайна</span>
             {showAnalytics ? (
               <ChevronUp className="w-3.5 h-3.5" />
             ) : (
@@ -224,13 +231,13 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
 
           <div className="flex items-center gap-2.5">
             {/* Player Counter Box */}
-            <div className="bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#00e676]/10 flex items-center justify-center text-[#00e676]">
+            <div className="bg-[#090c12]/80 border border-white/12 rounded-xl px-3.5 py-2 flex items-center gap-3 shadow-inner">
+              <div className="w-8 h-8 rounded-lg bg-[#00e676]/15 flex items-center justify-center text-[#00e676] shadow-[0_0_10px_rgba(0,230,118,0.25)]">
                 <Users className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-semibold tracking-wider text-neutral-400">
-                  Игроков на сервере
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">
+                  В игре сейчас
                 </span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-xl sm:text-2xl font-black text-white leading-none">
@@ -250,7 +257,7 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
               type="button"
               onClick={onRefresh}
               disabled={status.loading}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-colors disabled:opacity-50"
+              className="p-2 rounded-xl bg-[#090c12] hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-colors disabled:opacity-50"
               title="Обновить онлайн и запустить сбор статистики"
             >
               <RefreshCw
@@ -270,36 +277,24 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
           </span>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            {status.playerList.map((nick) => {
-              const matchedProfile = playersDatabase.find(
-                (p) => p.username.toLowerCase() === nick.toLowerCase()
-              );
-              const playtimeStr = formatPlaytime(matchedProfile?.totalOnlineMinutes);
-
-              return (
-                <button
-                  key={nick}
-                  type="button"
-                  onClick={() => {
-                    if (onOpenPlayerProfile) {
-                      onOpenPlayerProfile(nick);
-                    } else if (onSelectPlayer) {
-                      onSelectPlayer(nick);
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#00e676]/15 border border-white/10 hover:border-[#00e676]/30 text-xs text-neutral-200 hover:text-[#00e676] transition-all group/player"
-                  title={`Открыть паспорт игрока ${nick} • Наиграно на сервере: ${playtimeStr}`}
-                >
-                  <PlayerAvatar username={nick} size={16} />
-                  <span className="font-mono text-[11px] font-semibold">{nick}</span>
-                  {matchedProfile?.totalOnlineMinutes && matchedProfile.totalOnlineMinutes > 0 ? (
-                    <span className="text-[10px] px-1 py-0.2 rounded bg-white/5 text-neutral-400 group-hover/player:text-[#00e676]/90">
-                      {playtimeStr}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
+            {status.playerList.map((nick) => (
+              <button
+                key={nick}
+                type="button"
+                onClick={() => {
+                  if (onOpenPlayerProfile) {
+                    onOpenPlayerProfile(nick);
+                  } else if (onSelectPlayer) {
+                    onSelectPlayer(nick);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#00e676]/15 border border-white/10 hover:border-[#00e676]/30 text-xs text-neutral-200 hover:text-[#00e676] transition-all group/player"
+                title={`Открыть паспорт игрока ${nick}`}
+              >
+                <PlayerAvatar username={nick} size={16} />
+                <span className="font-mono text-[11px] font-semibold">{nick}</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -335,67 +330,138 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
             </div>
           </div>
 
-          {/* Hourly Bar Chart */}
+          {/* Hourly Neon Equalizer Chart */}
           {recentSnapshots.length === 0 ? (
             <div className="p-4 rounded-xl bg-white/5 border border-dashed border-white/10 text-center text-xs text-neutral-400">
               <Clock className="w-5 h-5 text-neutral-500 mx-auto mb-1.5" />
               <span>Сервер ведет ежечасный сбор статистики онлайна. Первые снимки появятся в течение часа.</span>
             </div>
           ) : (
-            <div className="bg-[#0e0e0e] border border-white/10 rounded-xl p-3.5">
-              <div className={`flex items-end ${recentSnapshots.length < 12 ? 'justify-start gap-4' : 'justify-between gap-1'} h-28 pt-4 pb-1 overflow-x-auto`}>
+            <div className="bg-[#080b11] border border-cyan-500/20 rounded-2xl p-4 shadow-inner relative overflow-hidden">
+              {/* Equalizer ambient background light */}
+              <div className="absolute top-0 right-1/4 w-40 h-20 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+
+              <div className={`flex items-end ${recentSnapshots.length < 12 ? 'justify-start gap-4' : 'justify-between gap-1'} h-32 pt-5 pb-1 overflow-x-auto`}>
                 {recentSnapshots.map((snap, idx) => {
+                  const peakOnline = typeof snap.maxOnline === 'number' ? snap.maxOnline : snap.onlineCount;
+                  const finalOnline = typeof snap.finalOnline === 'number' ? snap.finalOnline : snap.onlineCount;
                   const heightPercent = Math.max(
                     8,
-                    Math.round((snap.onlineCount / maxHourlyOnline) * 100)
+                    Math.round((peakOnline / maxHourlyOnline) * 100)
                   );
                   const isHovered = hoveredSnapshotIndex === idx;
+                  const isPeak = peakOnline > 0 && peakOnline === maxHourlyOnline;
 
                   return (
                     <div
                       key={snap.id || idx}
                       onMouseEnter={() => setHoveredSnapshotIndex(idx)}
                       onMouseLeave={() => setHoveredSnapshotIndex(null)}
-                      className={`${recentSnapshots.length < 12 ? 'w-10 flex-shrink-0' : 'flex-1 min-w-[20px] max-w-[40px]'} flex flex-col items-center gap-1 group/bar relative cursor-pointer`}
+                      className={`${recentSnapshots.length < 12 ? 'w-10 flex-shrink-0' : 'flex-1 min-w-[22px] max-w-[42px]'} flex flex-col items-center gap-1 group/bar relative cursor-pointer`}
                     >
-                      {/* Tooltip on hover */}
+                      {/* Tooltip on hover with player heads & detailed max/final online stats */}
                       {isHovered && (
-                        <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 bg-neutral-900 border border-white/20 text-white rounded-lg p-2 text-[10px] whitespace-nowrap shadow-xl pointer-events-none">
-                          <div className="font-bold text-[#00e676]">
-                            {formatLocalTooltipTime(snap)}: {snap.onlineCount} {getPlayerPlural(snap.onlineCount)}
+                        <div className="absolute -top-28 left-1/2 -translate-x-1/2 z-30 bg-[#090d14]/95 border border-cyan-500/40 backdrop-blur-md text-white rounded-xl p-3 text-[11px] whitespace-nowrap shadow-[0_12px_28px_rgba(0,0,0,0.85)] pointer-events-none min-w-[180px]">
+                          <div className="flex items-center justify-between gap-3 font-bold border-b border-white/10 pb-1.5 mb-1.5">
+                            <div className="flex items-center gap-1.5 text-cyan-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                              <span>{formatLocalTooltipTime(snap)}</span>
+                            </div>
+                            <span className="text-[10px] text-neutral-400 font-mono">
+                              Всего: {snap.players?.length || finalOnline}
+                            </span>
                           </div>
-                          {snap.players && snap.players.length > 0 && (
-                            <div className="text-neutral-400 truncate max-w-[160px]">
-                              {snap.players.slice(0, 4).join(', ')}
-                              {snap.players.length > 4 ? ` +${snap.players.length - 4}` : ''}
+
+                          {/* Max vs Final Online Metrics */}
+                          <div className="grid grid-cols-2 gap-2 text-[10px] bg-white/[0.04] p-1.5 rounded-lg border border-white/5 font-mono mb-1.5">
+                            <div>
+                              <span className="text-neutral-400 block text-[9px]">Макс. за час:</span>
+                              <span className="text-[#00d2ff] font-bold text-xs">↑ {peakOnline} {getPlayerPlural(peakOnline)}</span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-400 block text-[9px]">Конечный:</span>
+                              <span className="text-emerald-400 font-bold text-xs">→ {finalOnline} {getPlayerPlural(finalOnline)}</span>
+                            </div>
+                          </div>
+
+                          {snap.players && snap.players.length > 0 ? (
+                            <div className="flex items-center gap-1.5 pt-1 border-t border-white/10">
+                              <div className="flex items-center -space-x-1">
+                                {snap.players.slice(0, 3).map((p) => (
+                                  <PlayerAvatar key={p} username={p} size={16} className="rounded-full border border-black/80" />
+                                ))}
+                              </div>
+                              <span className="text-[10px] text-neutral-300 truncate max-w-[140px]">
+                                {snap.players.slice(0, 3).join(', ')}
+                                {snap.players.length > 3 ? ` +${snap.players.length - 3}` : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-neutral-500 italic">
+                              Никто не заходил в этот час
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* Online count label on top of bar */}
-                      <span className="text-[9px] font-mono text-neutral-400 group-hover/bar:text-[#00e676] transition-colors">
-                        {snap.onlineCount}
-                      </span>
-
-                      {/* Bar Fill */}
-                      <div className="w-full bg-white/5 rounded-t-sm flex items-end h-16 relative overflow-hidden">
-                        <div
-                          className="w-full rounded-t-sm transition-all duration-300"
-                          style={{
-                            height: `${heightPercent}%`,
-                            backgroundColor:
-                              snap.onlineCount > 0
-                                ? isHovered
-                                  ? '#00e676'
-                                  : '#00c853'
-                                : 'rgba(255,255,255,0.1)',
-                          }}
-                        />
+                      {/* Online count labels on top of bar: Max & Final */}
+                      <div className="flex flex-col items-center leading-none">
+                        <span
+                          title={`Пиковый (макс.) онлайн за час: ${peakOnline}`}
+                          className={`text-[9px] font-mono font-bold transition-colors ${
+                            isPeak
+                              ? 'text-[#00d2ff] drop-shadow-[0_0_6px_rgba(0,210,255,0.85)]'
+                              : isHovered
+                              ? 'text-cyan-300'
+                              : 'text-cyan-400/90 group-hover/bar:text-cyan-300'
+                          }`}
+                        >
+                          ↑{peakOnline}
+                        </span>
+                        <span
+                          title={`Конечный онлайн (на конец часа): ${finalOnline}`}
+                          className={`text-[8px] font-mono font-medium transition-colors ${
+                            isHovered ? 'text-emerald-300' : 'text-neutral-400 group-hover/bar:text-neutral-200'
+                          }`}
+                        >
+                          →{finalOnline}
+                        </span>
                       </div>
 
-                      {/* Hour label */}
-                      <span className="text-[9px] font-mono text-neutral-500 group-hover/bar:text-neutral-300 transition-colors">
+                      {/* Equalizer Bar Fill */}
+                      <div className="w-full bg-white/[0.04] rounded-t-md flex flex-col justify-end h-20 relative overflow-hidden border-x border-t border-white/5">
+                        <div
+                          className="w-full rounded-t-md transition-all duration-300 relative"
+                          style={{
+                            height: `${heightPercent}%`,
+                            background:
+                              peakOnline > 0
+                                ? isHovered
+                                  ? 'linear-gradient(to top, #00e676 0%, #00d2ff 100%)'
+                                  : 'linear-gradient(to top, #00c853 0%, #00b4d8 100%)'
+                                : 'rgba(255,255,255,0.06)',
+                            boxShadow:
+                              peakOnline > 0
+                                ? isPeak || isHovered
+                                  ? '0 0 16px rgba(0, 210, 255, 0.4), inset 0 0 8px rgba(255,255,255,0.3)'
+                                  : '0 0 8px rgba(0, 230, 118, 0.2)'
+                                : undefined,
+                          }}
+                        >
+                          {/* Glowing Neon Cap on top of bar */}
+                          {peakOnline > 0 && (
+                            <div
+                              className="w-full h-1 rounded-t-md bg-[#00d2ff]"
+                              style={{
+                                boxShadow: '0 0 8px #00d2ff, 0 0 14px rgba(0, 210, 255, 0.8)',
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Hour label in HH:00 format */}
+                      <span className="text-[9px] font-mono text-neutral-500 group-hover/bar:text-cyan-300 transition-colors whitespace-nowrap">
                         {formatLocalHour(snap)}
                       </span>
                     </div>
@@ -403,15 +469,30 @@ export const ServerStatusBar: React.FC<ServerStatusBarProps> = ({
                 })}
               </div>
 
-              <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
-                <span>⏱️ Истинные замеры онлайна — история накапливается каждый час</span>
+              <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400 flex-wrap gap-2">
+                <div className="flex items-center gap-3 text-neutral-400 flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00d2ff] shadow-[0_0_6px_#00d2ff]" />
+                    <span>Почасовой замер:</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] text-cyan-300 font-mono">
+                    <span className="font-bold">↑</span>
+                    <span>Максимум за час</span>
+                  </span>
+                  <span className="text-neutral-600">/</span>
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
+                    <span className="font-bold">→</span>
+                    <span>Конечный (на конец часа)</span>
+                  </span>
+                </div>
                 {onOpenPlayersModal && (
                   <button
                     type="button"
                     onClick={onOpenPlayersModal}
-                    className="text-[#00e676] hover:underline font-medium"
+                    className="text-cyan-400 hover:text-cyan-300 hover:underline font-bold flex items-center gap-1"
                   >
-                    Реестр игроков и наигранные часы →
+                    <span>Реестр игроков и наигранные часы</span>
+                    <span>→</span>
                   </button>
                 )}
               </div>

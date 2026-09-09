@@ -107,12 +107,12 @@ export const StatsBar: React.FC<StatsBarProps> = ({ events = [] }) => {
       {stats.map((s) => (
         <div
           key={s.label}
-          className={`group relative overflow-hidden ${s.bg} border ${s.border} rounded-xl p-3 sm:p-4 text-center transition-all duration-250 hover:scale-[1.03] hover:shadow-xl ${s.glow} cursor-default`}
+          className={`group relative overflow-hidden basalt-card ${s.bg} border ${s.border} rounded-2xl p-3 sm:p-4 text-center transition-all duration-250 hover:scale-[1.02] hover:shadow-xl ${s.glow} cursor-default`}
         >
           {/* Top accent line */}
           <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${s.topLine} to-transparent`} />
 
-          <div className={`flex items-center justify-center gap-1.5 mb-1.5 text-neutral-500 ${s.hoverText} transition-colors duration-200`}>
+          <div className={`flex items-center justify-center gap-1.5 mb-1.5 text-neutral-400 ${s.hoverText} transition-colors duration-200`}>
             <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
             <span className="text-[11px] uppercase tracking-wider font-semibold">{s.label}</span>
           </div>

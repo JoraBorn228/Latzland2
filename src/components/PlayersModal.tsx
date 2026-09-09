@@ -22,10 +22,12 @@ import {
   EyeOff,
   UserCheck,
   Clock,
+  Bot,
+  CheckCircle2,
 } from 'lucide-react';
 import { PlayerProfile, LatzEvent, EventCoordinates } from '../types';
 import { PlayerAvatar } from './PlayerAvatar';
-import { getPlayerColor, formatPlaytime, formatLastSeen } from '../utils/playerUtils';
+import { getPlayerColor, formatLastSeen } from '../utils/playerUtils';
 import { validateMinecraftNick, sanitizeText } from '../utils/sanitizer';
 import { hashPlayerPassword } from '../utils/security';
 import { BadgeEditorModal } from './BadgeEditorModal';
@@ -65,7 +67,8 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'events' | 'date' | 'playtime'>('playtime');
+  const [registrationFilter, setRegistrationFilter] = useState<'all' | 'registered' | 'auto'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'events' | 'date'>('events');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingPlayerId, setDeletingPlayerId] = useState<string | null>(null);
@@ -81,8 +84,14 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
   const [formTelegram, setFormTelegram] = useState('');
   const [formCoords, setFormCoords] = useState('');
   const [formColor, setFormColor] = useState('');
+  const [formIsAutoRegistered, setFormIsAutoRegistered] = useState(false);
 
   if (!isOpen) return null;
+
+  // Counts for registration types
+  const autoRegisteredCount = players.filter((p) => Boolean(p.isAutoRegistered)).length;
+  const registeredCount = players.length - autoRegisteredCount;
+  const withPasswordCount = players.filter((p) => Boolean(p.password)).length;
 
   // Count events for each player
   const playerEventCounts: Record<string, number> = {};
@@ -120,24 +129,22 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
         selectedRoleFilter === 'all' ||
         (p.role && p.role.toLowerCase() === selectedRoleFilter.toLowerCase());
 
-      return matchSearch && matchRole;
+      const matchRegistration =
+        registrationFilter === 'all' ||
+        (registrationFilter === 'registered' && !p.isAutoRegistered) ||
+        (registrationFilter === 'auto' && Boolean(p.isAutoRegistered));
+
+      return matchSearch && matchRole && matchRegistration;
     })
     .sort((a, b) => {
-      if (sortBy === 'playtime') {
-        const timeA = a.totalOnlineMinutes || 0;
-        const timeB = b.totalOnlineMinutes || 0;
-        if (timeB !== timeA) return timeB - timeA;
-        const countA = playerEventCounts[a.username.toLowerCase()] || 0;
-        const countB = playerEventCounts[b.username.toLowerCase()] || 0;
-        return countB - countA;
-      }
-      if (sortBy === 'name') {
-        return a.username.localeCompare(b.username);
-      }
       if (sortBy === 'events') {
         const countA = playerEventCounts[a.username.toLowerCase()] || 0;
         const countB = playerEventCounts[b.username.toLowerCase()] || 0;
-        return countB - countA;
+        if (countB !== countA) return countB - countA;
+        return a.username.localeCompare(b.username);
+      }
+      if (sortBy === 'name') {
+        return a.username.localeCompare(b.username);
       }
       if (sortBy === 'date') {
         const dateA = a.registeredAt || '2023-01-01';
@@ -157,6 +164,7 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
     setFormTelegram(player.telegram || '');
     setFormCoords(formatHomeCoordinates(player.homeCoordinates));
     setFormColor(player.color || getPlayerColor(player.username));
+    setFormIsAutoRegistered(Boolean(player.isAutoRegistered));
     setIsAdding(false);
   };
 
@@ -171,7 +179,26 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
     setFormTelegram('');
     setFormCoords('');
     setFormColor('');
+    setFormIsAutoRegistered(false);
     setShowPasswordInForm(false);
+  };
+
+  const handleToggleRegistrationStatus = (player: PlayerProfile) => {
+    const nextStatus = !player.isAutoRegistered;
+    const updated: PlayerProfile = {
+      ...player,
+      isAutoRegistered: nextStatus,
+    };
+    if (onUpdatePlayer) {
+      onUpdatePlayer(updated);
+    } else if (onSavePlayers) {
+      onSavePlayers(players.map((p) => (p.id === player.id ? updated : p)));
+    }
+    onShowToast(
+      nextStatus
+        ? `Игрок «${player.username}» помечен как авто-запись сервера`
+        : `Регистрация игрока «${player.username}» официально подтверждена`
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -197,6 +224,7 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
       }
 
       const updated: PlayerProfile = {
+        ...(existing || {}),
         id: editingId,
         username: cleanNick,
         role: sanitizeText(formRole) || undefined,
@@ -207,6 +235,7 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
         homeCoordinates: sanitizeText(formCoords) || undefined,
         color: formColor || getPlayerColor(cleanNick),
         registeredAt: existing?.registeredAt || new Date().toISOString().split('T')[0],
+        isAutoRegistered: formIsAutoRegistered,
       };
 
       if (onUpdatePlayer) {
@@ -241,6 +270,7 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
         homeCoordinates: sanitizeText(formCoords) || undefined,
         color: formColor || getPlayerColor(cleanNick),
         registeredAt: new Date().toISOString().split('T')[0],
+        isAutoRegistered: formIsAutoRegistered,
       };
 
       if (onAddPlayer) {
@@ -316,7 +346,7 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-neutral-400">
-                Полный реестр игроков LatzLand SMP, роли, контакты, координаты и участие в летописи
+                Полный реестр игроков LatzLand, роли, контакты, координаты и участие в летописи
               </p>
             </div>
           </div>
@@ -341,68 +371,180 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
 
         {/* Content body */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4 custom-scrollbar flex-1">
-          {/* Action & Search Bar */}
-          <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Поиск по нику, роли, описанию, Discord, Telegram, координатам..."
-                className="w-full bg-[#181818] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-400 transition-all shadow-inner"
-              />
-            </div>
+          {/* Admin Registration Overview & Filter Deck */}
+          {isAdmin && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 animate-in fade-in duration-150">
+              {/* All players */}
+              <button
+                type="button"
+                onClick={() => setRegistrationFilter('all')}
+                className={`p-2.5 rounded-xl text-left transition-all border ${
+                  registrationFilter === 'all'
+                    ? 'bg-amber-500/15 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-400 font-medium">Всего в базе</span>
+                  <Users className="w-4 h-4 text-neutral-400" />
+                </div>
+                <div className="text-xl font-black text-white mt-1">{players.length}</div>
+                <div className="text-[10px] text-neutral-500 mt-0.5">Вся база данных игроков</div>
+              </button>
 
-            {/* Role Filter & Sort */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              {availableRoles.length > 0 && (
+              {/* Registered players */}
+              <button
+                type="button"
+                onClick={() => setRegistrationFilter('registered')}
+                className={`p-2.5 rounded-xl text-left transition-all border ${
+                  registrationFilter === 'registered'
+                    ? 'bg-emerald-500/20 border-emerald-500/50 shadow-[0_0_15px_rgba(0,230,118,0.2)]'
+                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Зарегистрированы
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                    {Math.round((registeredCount / (players.length || 1)) * 100)}%
+                  </span>
+                </div>
+                <div className="text-xl font-black text-emerald-300 mt-1">{registeredCount}</div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">
+                  {withPasswordCount > 0 ? `${withPasswordCount} с паролем ЛК` : 'Официальные профили'}
+                </div>
+              </button>
+
+              {/* Auto-recorded players */}
+              <button
+                type="button"
+                onClick={() => setRegistrationFilter('auto')}
+                className={`p-2.5 rounded-xl text-left transition-all border ${
+                  registrationFilter === 'auto'
+                    ? 'bg-cyan-500/20 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-cyan-400 font-medium flex items-center gap-1">
+                    <Bot className="w-3.5 h-3.5" />
+                    Записаны автоматически
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">
+                    {autoRegisteredCount}
+                  </span>
+                </div>
+                <div className="text-xl font-black text-cyan-300 mt-1">{autoRegisteredCount}</div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">Зафиксированы сервером при заходе</div>
+              </button>
+            </div>
+          )}
+
+          {/* Action & Search Bar */}
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Поиск по нику, роли, описанию, Discord, Telegram, координатам..."
+                  className="w-full bg-[#181818] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-400 transition-all shadow-inner"
+                />
+              </div>
+
+              {/* Role Filter & Sort */}
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                {availableRoles.length > 0 && (
+                  <select
+                    value={selectedRoleFilter}
+                    onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                    className="bg-[#181818] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-neutral-300 focus:outline-none focus:border-cyan-400"
+                  >
+                    <option value="all">Все роли ({players.length})</option>
+                    {availableRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
                 <select
-                  value={selectedRoleFilter}
-                  onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
                   className="bg-[#181818] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-neutral-300 focus:outline-none focus:border-cyan-400"
                 >
-                  <option value="all">Все роли ({players.length})</option>
-                  {availableRoles.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
+                  <option value="events">По событиям</option>
+                  <option value="name">По алфавиту</option>
+                  <option value="date">По дате регистрации</option>
                 </select>
-              )}
 
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-[#181818] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-neutral-300 focus:outline-none focus:border-cyan-400"
+                {isAdmin && !isAdding && !editingId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAdding(true);
+                      setEditingId(null);
+                      setFormNick('');
+                      setFormRole('');
+                      setFormDesc('');
+                      setFormPassword('');
+                      setFormDiscord('');
+                      setFormTelegram('');
+                      setFormCoords('');
+                      setFormColor('');
+                      setFormIsAutoRegistered(false);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>Добавить игрока</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Filter Tabs: Все / Зарегистрированные / Авто-записи */}
+            <div className="flex items-center gap-1 bg-[#141414] p-1 rounded-xl border border-white/10 text-xs self-start flex-wrap">
+              <button
+                type="button"
+                onClick={() => setRegistrationFilter('all')}
+                className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                  registrationFilter === 'all'
+                    ? 'bg-white/15 text-white shadow-sm font-semibold'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
               >
-                <option value="playtime">⏱️ По онлайну / наигранному времени</option>
-                <option value="events">По событиям</option>
-                <option value="name">По алфавиту</option>
-                <option value="date">По дате регистрации</option>
-              </select>
-
-              {isAdmin && !isAdding && !editingId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAdding(true);
-                    setEditingId(null);
-                    setFormNick('');
-                    setFormRole('');
-                    setFormDesc('');
-                    setFormPassword('');
-                    setFormDiscord('');
-                    setFormTelegram('');
-                    setFormCoords('');
-                    setFormColor('');
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] flex items-center justify-center gap-1.5 shrink-0"
-                >
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
-                  <span>Добавить игрока</span>
-                </button>
-              )}
+                Все ({players.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegistrationFilter('registered')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors ${
+                  registrationFilter === 'registered'
+                    ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm font-semibold'
+                    : 'text-neutral-400 hover:text-emerald-400'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Зарегистрированные ({registeredCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegistrationFilter('auto')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition-colors ${
+                  registrationFilter === 'auto'
+                    ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 shadow-sm font-semibold'
+                    : 'text-neutral-400 hover:text-cyan-400'
+                }`}
+              >
+                <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Авто-записи сервером ({autoRegisteredCount})</span>
+              </button>
             </div>
           </div>
 
@@ -542,6 +684,48 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
                 </div>
               )}
 
+              {/* Registration status selector for admin */}
+              {isAdmin && (
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div>
+                    <span className="text-xs font-semibold text-white block">
+                      Тип записи в базе игроков
+                    </span>
+                    <span className="text-[11px] text-neutral-400">
+                      {formIsAutoRegistered
+                        ? '🤖 Автоматическая запись сервера (зафиксирован при заходе)'
+                        : '✅ Полноценно зарегистрированный профиль игрока'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-[#121212] p-1 rounded-xl border border-white/10 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setFormIsAutoRegistered(false)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 ${
+                        !formIsAutoRegistered
+                          ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Зарегистрирован</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormIsAutoRegistered(true)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 ${
+                        formIsAutoRegistered
+                          ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Авто-запись</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
@@ -580,7 +764,7 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <h4 className="font-bold text-sm text-white truncate flex items-center gap-1.5">
+                          <h4 className="font-bold text-sm text-white truncate flex items-center gap-1.5 flex-wrap">
                             <span style={{ color: playerColor }}>{player.username}</span>
                             <button
                               onClick={() => handleCopyText(player.username, 'Никнейм')}
@@ -589,27 +773,38 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
                             >
                               <Copy className="w-3 h-3" />
                             </button>
-                            {player.isAutoRegistered && (
+
+                            {/* Registration Badge */}
+                            {player.isAutoRegistered ? (
                               <span
-                                className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-semibold"
-                                title="Автоматически добавлен в базу данных сервером при входе"
+                                className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/35 text-cyan-300 font-semibold inline-flex items-center gap-1"
+                                title="Игрок добавлен сервером автоматически при обнаружении в игре (Личный кабинет ещё не активирован)"
                               >
-                                🤖 Авто
+                                <Bot className="w-3 h-3 text-cyan-400" />
+                                <span>Авто-запись</span>
+                              </span>
+                            ) : (
+                              <span
+                                className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-400 font-semibold inline-flex items-center gap-1"
+                                title="Официально зарегистрированный профиль игрока"
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                <span>Зарегистрирован</span>
+                              </span>
+                            )}
+
+                            {isAdmin && player.password && (
+                              <span
+                                className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-medium inline-flex items-center gap-1"
+                                title="Пароль установлен: игрок может входить в личный кабинет"
+                              >
+                                <Key className="w-2.5 h-2.5 text-amber-400" />
+                                <span className="hidden sm:inline">Пароль задан</span>
                               </span>
                             )}
                           </h4>
 
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            {player.totalOnlineMinutes && player.totalOnlineMinutes > 0 ? (
-                              <span
-                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#00e676]/10 border border-[#00e676]/30 text-[#00e676] truncate flex items-center gap-1"
-                                title="Всего наиграно на сервере"
-                              >
-                                <Clock className="w-2.5 h-2.5" />
-                                <span>{formatPlaytime(player.totalOnlineMinutes)}</span>
-                              </span>
-                            ) : null}
-
                             {player.role && (
                               <span
                                 className="text-[10px] font-semibold px-2 py-0.5 rounded-full border truncate"
@@ -705,6 +900,35 @@ export const PlayersModal: React.FC<PlayersModalProps> = ({
                     </button>
 
                     <div className="flex items-center gap-1">
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRegistrationStatus(player)}
+                          className={`px-2 py-1.5 rounded-lg border text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                            player.isAutoRegistered
+                              ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/35 text-emerald-300'
+                              : 'bg-white/5 hover:bg-white/10 border-white/10 text-neutral-400 hover:text-neutral-200'
+                          }`}
+                          title={
+                            player.isAutoRegistered
+                              ? 'Подтвердить официальную регистрацию игрока (снять статус авто-записи)'
+                              : 'Перевести игрока в статус автоматической записи'
+                          }
+                        >
+                          {player.isAutoRegistered ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="hidden sm:inline">Подтвердить</span>
+                            </>
+                          ) : (
+                            <>
+                              <Bot className="w-3.5 h-3.5 text-neutral-400" />
+                              <span className="hidden sm:inline">Сделать авто</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
                       {isAdmin && (
                         <button
                           type="button"

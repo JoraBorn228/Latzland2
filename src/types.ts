@@ -239,6 +239,8 @@ export interface ServerOnlineSnapshot {
   timeLabel: string; // e.g. "14:00"
   dateLabel?: string; // e.g. "08.09"
   onlineCount: number;
+  maxOnline?: number; // peak online reached during this hour
+  finalOnline?: number; // ending online at completion of this hour
   maxPlayers: number;
   players: string[];
 }

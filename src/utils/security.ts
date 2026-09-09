@@ -1,4 +1,4 @@
-// Production-grade security utilities for LatzLand SMP Timeline
+// Production-grade security utilities for LatzLand Timeline
 // Cryptographic hashing, session tokens, audit logging, and password strength evaluation
 
 const ADMIN_SALT = 'latzland_smp_secure_master_salt_2024';

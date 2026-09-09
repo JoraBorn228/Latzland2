@@ -14,6 +14,8 @@ interface ServerOnlineSnapshot {
   timeLabel: string;
   dateLabel?: string;
   onlineCount: number;
+  maxOnline?: number;
+  finalOnline?: number;
   maxPlayers: number;
   players: string[];
 }
@@ -77,6 +79,16 @@ function loadDatabase(): void {
         for (const k of Object.keys(memoryDb.onlineSnapshots)) {
           if (k.startsWith('snap-2026-09-07') || (k.startsWith('snap-2026-09-08T') && parseInt(k.slice(16, 18), 10) < 20)) {
             delete memoryDb.onlineSnapshots[k];
+          }
+        }
+        for (const snap of Object.values(memoryDb.onlineSnapshots)) {
+          if (snap) {
+            if (typeof snap.maxOnline !== 'number') {
+              snap.maxOnline = snap.onlineCount ?? 0;
+            }
+            if (typeof snap.finalOnline !== 'number') {
+              snap.finalOnline = snap.onlineCount ?? 0;
+            }
           }
         }
       }
@@ -180,7 +192,7 @@ async function startServer() {
   await seedInitialDataIfNeeded();
 
   const app = express();
-  const PORT = 8080;
+  const PORT = 3000;
 
   app.use(express.json({ limit: '50mb' }));
 
@@ -584,8 +596,20 @@ async function startServer() {
       const minutesStr = '00';
       const dayStr = String(now.getUTCDate()).padStart(2, '0');
       const monthStr = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const currentOnlineNow = status.online ? status.onlinePlayers : 0;
 
-      const existingSnap = memoryDb.onlineSnapshots[snapId];
+      const existingSnap = memoryDb.onlineSnapshots[snapId] as {
+        id: string;
+        timestamp: string;
+        timeLabel: string;
+        dateLabel?: string;
+        onlineCount: number;
+        maxOnline?: number;
+        finalOnline?: number;
+        maxPlayers: number;
+        players: string[];
+      } | undefined;
+
       if (!existingSnap) {
         // A new hour has arrived! A brand new column is added immediately!
         lastHourlySnapshotHour = currentHourKey;
@@ -594,21 +618,27 @@ async function startServer() {
           timestamp: nowIso,
           timeLabel: `${hoursStr}:${minutesStr}`,
           dateLabel: `${dayStr}.${monthStr}`,
-          onlineCount: status.online ? status.onlinePlayers : 0,
+          onlineCount: currentOnlineNow,
+          maxOnline: currentOnlineNow,
+          finalOnline: currentOnlineNow,
           maxPlayers: status.maxPlayers || 88,
           players: status.online ? [...status.playerList] : [],
         };
-        console.log(`📊 [Hourly Snapshot] Добавлен новый срез онлайна за час ${currentHourKey}: ${status.online ? status.onlinePlayers : 0} игроков`);
+        console.log(`📊 [Hourly Snapshot] Добавлен новый срез онлайна за час ${currentHourKey}: ${currentOnlineNow} игроков (пик: ${currentOnlineNow})`);
       } else {
-        // Update current hour with the exact current live online count and active players
+        // Update current hour with live online count, peak tracking, and ending count
+        const prevMax = typeof existingSnap.maxOnline === 'number' ? existingSnap.maxOnline : (existingSnap.onlineCount || 0);
+        existingSnap.maxOnline = Math.max(prevMax, currentOnlineNow);
+        existingSnap.finalOnline = currentOnlineNow;
+        existingSnap.onlineCount = currentOnlineNow;
+        existingSnap.timeLabel = `${hoursStr}:${minutesStr}`;
+
         if (status.online) {
-          existingSnap.onlineCount = status.onlinePlayers;
           existingSnap.maxPlayers = status.maxPlayers || existingSnap.maxPlayers;
-          existingSnap.players = [...status.playerList];
+          const mergedPlayers = Array.from(new Set([...(existingSnap.players || []), ...status.playerList]));
+          existingSnap.players = mergedPlayers;
           existingSnap.timestamp = nowIso;
         } else {
-          existingSnap.onlineCount = 0;
-          existingSnap.players = [];
           existingSnap.timestamp = nowIso;
         }
       }

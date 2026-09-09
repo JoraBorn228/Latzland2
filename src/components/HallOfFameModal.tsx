@@ -141,7 +141,7 @@ export const HallOfFameModal: React.FC<HallOfFameModalProps> = ({
                     <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
                   </h2>
                   <p className="text-xs text-neutral-400">
-                    Выдающиеся игроки, основатели, ветераны и знаки отличия LatzLand SMP
+                    Выдающиеся игроки, основатели, ветераны и знаки отличия LatzLand
                   </p>
                 </div>
               </div>

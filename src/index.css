@@ -7,14 +7,14 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0c0c0c;
+    background: #090b0e;
   }
   ::-webkit-scrollbar-thumb {
-    background: #262626;
+    background: #1f2530;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #383838;
+    background: #2d3748;
   }
 }
 
@@ -22,7 +22,7 @@
 .accordion-wrapper {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: grid-template-rows 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .accordion-wrapper.is-open {
@@ -34,6 +34,7 @@
   min-height: 0;
 }
 
+/* Cyber-Minecraft Basalt and Neon Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -56,6 +57,47 @@
   }
 }
 
+@keyframes lightguideFlow {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 0% 200%;
+  }
+}
+
+@keyframes spherePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 10px var(--node-color, #00e676), inset 0 0 4px #ffffff;
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow: 0 0 20px var(--node-color, #00e676), 0 0 30px var(--node-color, #00e676), inset 0 0 6px #ffffff;
+  }
+}
+
+@keyframes radarWave {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes equalizerBounce {
+  0%, 100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -63,4 +105,48 @@
 .animate-slideUp {
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+.timeline-lightguide {
+  background: linear-gradient(
+    180deg,
+    #00e676 0%,
+    #00d2ff 28%,
+    #c084fc 62%,
+    #f43f5e 88%,
+    #00e676 100%
+  );
+  background-size: 100% 300%;
+  animation: lightguideFlow 8s linear infinite;
+}
+
+.timeline-lightguide-glow {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 230, 118, 0.5) 0%,
+    rgba(0, 210, 255, 0.5) 28%,
+    rgba(192, 132, 252, 0.5) 62%,
+    rgba(244, 63, 94, 0.5) 88%,
+    rgba(0, 230, 118, 0.5) 100%
+  );
+  background-size: 100% 300%;
+  animation: lightguideFlow 8s linear infinite;
+  filter: blur(4px);
+}
+
+.basalt-card {
+  background: linear-gradient(135deg, rgba(16, 20, 28, 0.92) 0%, rgba(11, 14, 19, 0.96) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.basalt-card:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.glass-dock {
+  background: rgba(11, 14, 19, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 36px rgba(0, 0, 0, 0.5);
+}
+
 

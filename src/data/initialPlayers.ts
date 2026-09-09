@@ -5,7 +5,7 @@ export const INITIAL_PLAYERS: PlayerProfile[] = [
     id: 'weistel',
     username: 'Weistel',
     role: 'Основатель сервера',
-    description: 'Основал и запустил первый сезон LatzLand SMP. Построил первые структуры на спавне.',
+    description: 'Основал и запустил первый сезон LatzLand. Построил первые структуры на спавне.',
     color: '#ffd700',
     registeredAt: '2023-09-01',
     discord: 'weistel#0001',

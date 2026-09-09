@@ -747,7 +747,7 @@ export const PlayerCabinetModal: React.FC<PlayerCabinetModalProps> = ({
                     )}
                   </div>
                   <p className="text-xs text-neutral-400 line-clamp-1 max-w-sm">
-                    {currentPlayerProfile?.description || 'Житель и строитель мира LatzLand SMP'}
+                    {currentPlayerProfile?.description || 'Житель и строитель мира LatzLand'}
                   </p>
                 </div>
               </div>

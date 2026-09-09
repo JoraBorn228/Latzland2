@@ -16,6 +16,8 @@ import {
   Edit3,
   Clock,
   UserCheck,
+  Bot,
+  CheckCircle2,
 } from 'lucide-react';
 import { LatzEvent, PlayerProfile, MinecraftServerStatus, EVENT_CATEGORIES } from '../types';
 import {
@@ -23,7 +25,6 @@ import {
   getMinecraftHeadUrl,
   getMinecraftSkinDownloadUrl,
   getPlayerColor,
-  formatPlaytime,
   formatLastSeen,
 } from '../utils/playerUtils';
 import { formatRussianDate } from '../utils/dateUtils';
@@ -236,6 +237,47 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     {seasons.length === 1 ? `Сезон ${seasons[0]}` : `Сезоны: ${seasons.join(', ')}`}
                   </span>
                 )}
+
+                {/* Registration Source Indicator */}
+                {profile?.isAutoRegistered ? (
+                  <span
+                    className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/35 text-cyan-300 font-semibold"
+                    title="Записан автоматически: игрок обнаружен на сервере в онлайне"
+                  >
+                    <Bot className="w-3 h-3 text-cyan-400" />
+                    <span>Авто-запись сервера</span>
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-400 font-semibold"
+                    title="Официально зарегистрированный профиль игрока"
+                  >
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>Зарегистрирован</span>
+                  </span>
+                )}
+
+                {isAdmin && profile && onUpdatePlayerProfile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !profile.isAutoRegistered;
+                      onUpdatePlayerProfile({
+                        ...profile,
+                        isAutoRegistered: next,
+                      });
+                      onShowToast(
+                        next
+                          ? `Игрок ${profile.username} переведен в авто-запись`
+                          : `Регистрация игрока ${profile.username} подтверждена!`
+                      );
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-colors"
+                    title="Сменить статус регистрации игрока"
+                  >
+                    {profile.isAutoRegistered ? 'Сделать зарегистрированным' : 'Сделать авто-записью'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -355,17 +397,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             )}
           </div>
 
-          {/* Player stats row including server playtime */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="bg-[#161616] border border-white/10 rounded-xl p-3 text-center">
-              <span className="text-[10px] sm:text-[11px] uppercase font-bold text-neutral-400 block mb-0.5">
-                Онлайн на сервере
-              </span>
-              <span className="text-base sm:text-lg font-black text-[#00e676] flex items-center justify-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>{formatPlaytime(profile?.totalOnlineMinutes)}</span>
-              </span>
-            </div>
+          {/* Player stats row */}
+          <div className="grid grid-cols-3 gap-2.5">
             <div className="bg-[#161616] border border-white/10 rounded-xl p-3 text-center">
               <span className="text-[10px] sm:text-[11px] uppercase font-bold text-neutral-400 block mb-0.5">
                 Событий

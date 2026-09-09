@@ -777,7 +777,7 @@ export default function App() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pb-24 md:pb-12">
+      <main className="flex-1 max-w-5xl xl:max-w-6xl w-full mx-auto px-3 sm:px-6 pb-24 md:pb-12">
         {/* ══ Hero Banner ══ */}
         <div className="relative overflow-hidden rounded-none sm:rounded-2xl mb-6 mt-0 sm:mt-6">
           {/* Glow orbs */}
@@ -816,7 +816,7 @@ export default function App() {
             <div className="tl-hero-in flex items-center justify-center gap-3 mb-4">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-400 font-semibold tracking-wider uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                LatzLand SMP
+                LatzLand
               </div>
             </div>
 
@@ -911,9 +911,9 @@ export default function App() {
           {filteredEvents.length > 0 ? (
             viewMode === 'detailed' ? (
               <div className="relative">
-                {/* Vertical connecting line — layered glow effect */}
-                <div className="absolute left-[20px] sm:left-[24px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-[#00e676] via-[#00e676]/20 to-transparent pointer-events-none" />
-                <div className="absolute left-[19px] sm:left-[23px] top-4 bottom-4 w-[4px] bg-gradient-to-b from-[#00e676]/20 via-transparent to-transparent blur-[3px] pointer-events-none" />
+                {/* Vertical connecting line — animated cyber lightguide with emerald-azure-amethyst flow */}
+                <div className="timeline-lightguide left-[19px] sm:left-[23px] top-4 bottom-4" />
+                <div className="timeline-lightguide-glow left-[17px] sm:left-[21px] top-4 bottom-4" />
                 <div>
                   {filteredEvents.map((ev, index) => (
                     <TimelineItem
@@ -995,7 +995,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-white/8 bg-gradient-to-b from-[#0c0c0c] to-[#0a0a0a] py-8 mt-auto">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="max-w-5xl xl:max-w-6xl mx-auto px-4 sm:px-6">
           {/* Top footer row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2.5">
@@ -1008,7 +1008,7 @@ export default function App() {
               </div>
             </div>
             <div className="text-[11px] text-neutral-600 text-center sm:text-right">
-              Хроника и история Minecraft SMP сервера
+              Хроника и история Minecraft-сервера
             </div>
           </div>
 

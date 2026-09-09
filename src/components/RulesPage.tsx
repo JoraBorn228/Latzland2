@@ -270,7 +270,7 @@ export const RulesPage: React.FC<RulesPageProps> = ({ onGoToHome, onGoToTimeline
           <h1 className="rules-hero-3 text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-4">
             <span className="rules-title">Правила</span>
             <br />
-            <span className="text-neutral-400 font-light text-2xl sm:text-3xl tracking-widest uppercase">LatzLand SMP</span>
+            <span className="text-neutral-400 font-light text-2xl sm:text-3xl tracking-widest uppercase">LatzLand</span>
           </h1>
 
           {/* Description */}

@@ -252,7 +252,7 @@ export const ProjectsCatalogModal: React.FC<ProjectsCatalogModalProps> = ({
                   </span>
                 </h2>
                 <p className="text-xs text-neutral-400">
-                  Архитектурные чудеса, базы, фермы и инфраструктура LatzLand SMP
+                  Архитектурные чудеса, базы, фермы и инфраструктура LatzLand
                 </p>
               </div>
             </div>

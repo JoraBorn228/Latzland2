@@ -1,6 +1,6 @@
 {
-  "name": "LatzLand SMP Timeline",
-  "description": "Хронология событий и история Minecraft SMP-сервера LatzLand",
+  "name": "LatzLand Timeline",
+  "description": "Хронология событий и история Minecraft-сервера LatzLand",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

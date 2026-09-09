@@ -253,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
           style={{ background: 'linear-gradient(90deg, transparent, rgba(0,230,118,0.5) 40%, rgba(0,230,118,0.5) 60%, transparent)' }}
         />
 
-        <div className="max-w-5xl w-full mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2">
+        <div className="max-w-5xl lg:max-w-6xl w-full mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2">
 
           {/* ─── LEFT: Logo + Home ─── */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -264,15 +264,15 @@ export const Header: React.FC<HeaderProps> = ({
               className="group flex items-center gap-2 shrink-0 focus:outline-none"
               title="На главную"
             >
-              {/* Icon */}
+              {/* Server Emblem logo2.png */}
               <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:rotate-[-6deg]"
-                style={{
-                  background: 'linear-gradient(135deg, #00e676 0%, #00c853 100%)',
-                  boxShadow: '0 0 16px rgba(0,230,118,0.35)',
-                }}
+                className="w-8 h-8 rounded-xl p-0.5 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:rotate-[-4deg] bg-gradient-to-br from-[#00e676]/30 via-[#0a1810] to-[#00d2ff]/20 border border-emerald-500/50 shadow-[0_0_14px_rgba(0,230,118,0.4)]"
               >
-                <Pickaxe className="w-4 h-4 text-black stroke-[2.5]" />
+                <img
+                  src="/logo2.png"
+                  alt="LatzLand Logo"
+                  className="w-full h-full object-contain filter drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]"
+                />
               </div>
 
               {/* Brand name */}
@@ -438,40 +438,6 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline">{isAdmin ? 'Добавить' : 'Предложить'}</span>
             </button>
 
-            {/* Player cabinet button */}
-            <button
-              type="button"
-              onClick={onOpenPlayerCabinet}
-              title="Личный кабинет"
-              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0"
-              style={activePlayerNick ? {
-                background: 'rgba(6,182,212,0.12)',
-                border: '1px solid rgba(6,182,212,0.35)',
-                color: '#67e8f9',
-                boxShadow: '0 0 12px rgba(6,182,212,0.12)',
-              } : {
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#a3a3a3',
-              }}
-            >
-              {activePlayerNick ? (
-                <img
-                  src={getMinecraftHeadUrl(activePlayerNick, 20)}
-                  alt={activePlayerNick}
-                  className="w-4 h-4 rounded border border-cyan-400/30 shrink-0"
-                />
-              ) : (
-                <User className="w-3.5 h-3.5 shrink-0" />
-              )}
-              <span className="truncate max-w-[70px] sm:max-w-[90px]">
-                {activePlayerNick ?? 'Кабинет'}
-              </span>
-              {myProposalsCount > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shrink-0" />
-              )}
-            </button>
-
             {/* ─── Menu toggle ─── */}
             <div className="relative shrink-0" ref={menuRef}>
               <button
@@ -500,7 +466,7 @@ export const Header: React.FC<HeaderProps> = ({
               {/* ─── Dropdown ─── */}
               {isMenuOpen && (
                 <div
-                  className="menu-popup absolute right-0 mt-2.5 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] z-50 overflow-hidden max-h-[80vh] overflow-y-auto"
+                  className="menu-popup absolute -right-16 sm:right-0 mt-2.5 w-72 sm:w-80 max-w-[calc(100vw-1rem)] z-50 overflow-hidden max-h-[80vh] overflow-y-auto"
                   style={{
                     background: 'linear-gradient(180deg, #131313 0%, #111111 100%)',
                     border: '1px solid rgba(255,255,255,0.1)',
@@ -661,6 +627,41 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Player cabinet button (Rightmost position) */}
+            <button
+              type="button"
+              id="header-cabinet-btn"
+              onClick={onOpenPlayerCabinet}
+              title={activePlayerNick ? `Личный кабинет (@${activePlayerNick})` : 'Войти в личный кабинет'}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 active:scale-95"
+              style={activePlayerNick ? {
+                background: 'rgba(6,182,212,0.15)',
+                border: '1px solid rgba(6,182,212,0.4)',
+                color: '#67e8f9',
+                boxShadow: '0 0 14px rgba(6,182,212,0.2)',
+              } : {
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: '#e5e5e5',
+              }}
+            >
+              {activePlayerNick ? (
+                <img
+                  src={getMinecraftHeadUrl(activePlayerNick, 20)}
+                  alt={activePlayerNick}
+                  className="w-4 h-4 rounded border border-cyan-400/40 shrink-0"
+                />
+              ) : (
+                <User className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+              )}
+              <span className="truncate max-w-[70px] sm:max-w-[100px] font-medium">
+                {activePlayerNick ?? 'Кабинет'}
+              </span>
+              {myProposalsCount > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              )}
+            </button>
           </div>
         </div>
       </header>
