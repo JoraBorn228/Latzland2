@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Header } from './components/Header';
+import { HomePage } from './components/HomePage';
+import { RulesPage } from './components/RulesPage';
 import { StatsBar } from './components/StatsBar';
 import { AdminBar } from './components/AdminBar';
 import { TimelineControls } from './components/TimelineControls';
@@ -171,6 +173,9 @@ export default function App() {
   }, [isAdmin]);
 
 
+
+  // Current page navigation
+  const [currentPage, setCurrentPage] = React.useState<'home' | 'timeline' | 'rules'>('home');
 
   // Filtering & sorting states
   const [searchQuery, setSearchQuery] = useState('');
@@ -676,10 +681,72 @@ export default function App() {
     );
   }
 
+  if (currentPage === 'home') {
+    return (
+      <HomePage
+        onGoToTimeline={() => setCurrentPage('timeline')}
+        onGoToRules={() => setCurrentPage('rules')}
+        eventsCount={events.length}
+        playersCount={players.length}
+        projectsCount={projects.length}
+        serverIp={serverStatus?.ip || 'play.latzland.eu'}
+        isOnline={serverStatus?.online ?? false}
+        onlinePlayers={serverStatus?.onlinePlayers ?? 0}
+      />
+    );
+  }
+
+  if (currentPage === 'rules') {
+    return (
+      <RulesPage
+        onGoToHome={() => setCurrentPage('home')}
+        onGoToTimeline={() => setCurrentPage('timeline')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0c0c0c] text-[#e8e8e8] w-full max-w-full overflow-x-hidden selection:bg-[#00e676]/30 selection:text-white">
+      <style>{`
+        @keyframes tl-shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes tl-float {
+          0%, 100% { transform: translateY(0px) scale(1); opacity: 0.15; }
+          50% { transform: translateY(-14px) scale(1.4); opacity: 0.4; }
+        }
+        @keyframes tl-glow-pulse {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.06); }
+        }
+        @keyframes tl-slide-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .tl-title-shimmer {
+          background: linear-gradient(90deg, #ffffff 0%, #00e676 35%, #ffffff 55%, #a7f3d0 100%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: tl-shimmer 5s linear infinite;
+        }
+        .tl-particle {
+          position: absolute;
+          border-radius: 9999px;
+          background: #00e676;
+          pointer-events: none;
+        }
+        .tl-hero-in { animation: tl-slide-up 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
+        .tl-hero-in-2 { animation: tl-slide-up 0.7s 0.1s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
+        .tl-hero-in-3 { animation: tl-slide-up 0.7s 0.2s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
+      `}</style>
+
       {/* Sticky Header */}
       <Header
+        onGoToHome={() => setCurrentPage('home')}
+        onGoToRules={() => setCurrentPage('rules')}
         isAdmin={isAdmin}
         activePlayerNick={activePlayerNick}
         serverStatus={serverStatus}
@@ -710,15 +777,67 @@ export default function App() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-8 pb-24 md:pb-12">
-        {/* Page Hero Title */}
-        <div className="text-center mb-6 pt-1">
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2.5 bg-gradient-to-r from-white via-neutral-100 to-[#00e676] bg-clip-text text-transparent">
-            Хронология сервера
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-400 max-w-lg mx-auto leading-relaxed">
-            Все ключевые события LatzLand SMP — от первой заложенной хижины до великих строек, войн и совместных побед
-          </p>
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pb-24 md:pb-12">
+        {/* ══ Hero Banner ══ */}
+        <div className="relative overflow-hidden rounded-none sm:rounded-2xl mb-6 mt-0 sm:mt-6">
+          {/* Glow orbs */}
+          <div className="absolute inset-0 pointer-events-none" style={{ animation: 'tl-glow-pulse 6s ease-in-out infinite' }}>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[200px] rounded-full bg-emerald-500/8 blur-[80px]" />
+            <div className="absolute bottom-0 right-1/4 w-[200px] h-[100px] rounded-full bg-cyan-500/5 blur-[60px]" />
+          </div>
+
+          {/* Grid bg */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.04]"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(0,230,118,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(0,230,118,0.6) 1px, transparent 1px)',
+              backgroundSize: '48px 48px',
+            }}
+          />
+
+          {/* Floating particles */}
+          {[...Array(10)].map((_, i) => (
+            <div
+              key={i}
+              className="tl-particle"
+              style={{
+                width: `${1.5 + (i % 3)}px`,
+                height: `${1.5 + (i % 3)}px`,
+                left: `${(i * 10 + 5) % 100}%`,
+                top: `${(i * 17 + 8) % 100}%`,
+                animation: `tl-float ${3 + i * 0.4}s ${i * 0.3}s ease-in-out infinite alternate`,
+              }}
+            />
+          ))}
+
+          {/* Content */}
+          <div className="relative z-10 text-center px-4 py-10 sm:py-12">
+            {/* Scroll icon */}
+            <div className="tl-hero-in flex items-center justify-center gap-3 mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-400 font-semibold tracking-wider uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                LatzLand SMP
+              </div>
+            </div>
+
+            <h1 className="tl-hero-in-2 text-3xl sm:text-5xl font-black tracking-tight leading-tight mb-3">
+              <span className="tl-title-shimmer">Хронология</span>
+              <br />
+              <span className="text-neutral-300 font-light text-2xl sm:text-3xl tracking-widest uppercase">сервера</span>
+            </h1>
+
+            <p className="tl-hero-in-3 text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto leading-relaxed">
+              Все ключевые события LatzLand — от первой заложенной хижины до великих строек,
+              войн, союзов и совместных побед. Фильтруй, ищи, изучай.
+            </p>
+
+            {/* Decorative divider */}
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-emerald-500/40" />
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-emerald-500/40" />
+            </div>
+          </div>
         </div>
 
         {/* Live Minecraft Server Status Card with Analytics & Hourly Graph */}
@@ -792,8 +911,9 @@ export default function App() {
           {filteredEvents.length > 0 ? (
             viewMode === 'detailed' ? (
               <div className="relative">
-                {/* Vertical connecting line with emerald gradient */}
-                <div className="absolute left-[20px] sm:left-[24px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-[#00e676] via-[#00e676]/25 to-transparent pointer-events-none" />
+                {/* Vertical connecting line — layered glow effect */}
+                <div className="absolute left-[20px] sm:left-[24px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-[#00e676] via-[#00e676]/20 to-transparent pointer-events-none" />
+                <div className="absolute left-[19px] sm:left-[23px] top-4 bottom-4 w-[4px] bg-gradient-to-b from-[#00e676]/20 via-transparent to-transparent blur-[3px] pointer-events-none" />
                 <div>
                   {filteredEvents.map((ev, index) => (
                     <TimelineItem
@@ -836,29 +956,37 @@ export default function App() {
               </div>
             )
           ) : (
-            <div className="p-8 my-6 text-center bg-[#141414] border border-white/5 rounded-2xl">
-              <SearchX className="w-10 h-10 text-neutral-500 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-white mb-1">
-                События не найдены
-              </h3>
-              <p className="text-xs text-neutral-400 mb-4 max-w-md mx-auto">
-                Попробуйте изменить параметры поиска или сбросить фильтры
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={resetFilters}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/15 text-white transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Сбросить фильтры</span>
-                </button>
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#00e676] hover:bg-[#00c853] text-black transition-colors shadow-sm"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>{isAdmin ? 'Добавить событие' : 'Предложить событие'}</span>
-                </button>
+            <div className="relative overflow-hidden p-10 my-6 text-center bg-[#111111] border border-white/8 rounded-2xl">
+              {/* Background glow */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-32 rounded-full bg-emerald-500/5 blur-[50px]" />
+              </div>
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-neutral-800/80 border border-white/10 flex items-center justify-center mx-auto mb-4">
+                  <SearchX className="w-7 h-7 text-neutral-500" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-1.5">
+                  События не найдены
+                </h3>
+                <p className="text-xs text-neutral-500 mb-6 max-w-sm mx-auto leading-relaxed">
+                  Попробуйте изменить параметры поиска или сбросить фильтры
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={resetFilters}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-white/8 hover:bg-white/15 border border-white/10 text-white transition-all hover:scale-[1.02]"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Сбросить фильтры</span>
+                  </button>
+                  <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 transition-all hover:scale-[1.02] shadow-lg shadow-emerald-500/10"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>{isAdmin ? 'Добавить событие' : 'Предложить событие'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -866,55 +994,75 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 bg-[#0e0e0e] py-6 mt-auto">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="text-xs text-neutral-400">
-            <span className="font-semibold text-white">LatzLand SMP</span> © {new Date().getFullYear()} — Хроника и история сервера
+      <footer className="border-t border-white/8 bg-gradient-to-b from-[#0c0c0c] to-[#0a0a0a] py-8 mt-auto">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          {/* Top footer row */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                <span className="text-emerald-400 text-sm">⛏</span>
+              </div>
+              <div>
+                <span className="font-bold text-white text-sm">LatzLand</span>
+                <span className="text-neutral-600 text-xs ml-2">© {new Date().getFullYear()}</span>
+              </div>
+            </div>
+            <div className="text-[11px] text-neutral-600 text-center sm:text-right">
+              Хроника и история Minecraft SMP сервера
+            </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1.5 text-neutral-400 text-[11px]">
-            <span>Minecraft 26.2</span>
-            <span>•</span>
-            <button
-              onClick={() => setIsPlayerCabinetOpen(true)}
-              className="hover:text-cyan-300 text-cyan-400/90 font-medium transition-colors underline underline-offset-2 flex items-center gap-1"
-            >
-              <User className="w-3 h-3 text-cyan-400" />
-              <span>Личный кабинет {activePlayerNick ? `(@${activePlayerNick})` : ''}</span>
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => setIsPlayersModalOpen(true)}
-              className="hover:text-cyan-400 transition-colors underline underline-offset-2"
-            >
-              База игроков ({players.length})
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => setIsProjectsCatalogOpen(true)}
-              className="hover:text-emerald-400 transition-colors underline underline-offset-2"
-            >
-              Стройки ({projects.length})
-            </button>
-            {isAdmin && (
-              <>
-                <span>•</span>
-                <button
-                  onClick={() => setIsModerationOpen(true)}
-                  className="hover:text-amber-400 text-amber-300 font-bold transition-colors flex items-center gap-1"
-                >
-                  <Inbox className="w-3 h-3 text-amber-400" />
-                  <span>Предложка ({pendingProposalsCount})</span>
-                </button>
-              </>
-            )}
-            <span>•</span>
-            <button
-              onClick={handleToggleAdmin}
-              className="hover:text-amber-400 transition-colors flex items-center gap-1"
-            >
-              <ShieldCheck className="w-3 h-3 text-amber-500" />
-              <span>{isAdmin ? 'Админка (активна)' : 'Вход в админку'}</span>
-            </button>
+
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-white/8 to-transparent mb-4" />
+
+          {/* Bottom footer links */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-3 gap-y-1.5 text-neutral-500 text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-neutral-600">Minecraft 26.2</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1.5">
+              <button
+                onClick={() => setIsPlayerCabinetOpen(true)}
+                className="hover:text-cyan-400 text-cyan-500/80 font-medium transition-colors flex items-center gap-1"
+              >
+                <User className="w-3 h-3" />
+                <span>{activePlayerNick ? `@${activePlayerNick}` : 'Кабинет'}</span>
+              </button>
+              <span className="text-neutral-700">•</span>
+              <button
+                onClick={() => setIsPlayersModalOpen(true)}
+                className="hover:text-white transition-colors"
+              >
+                Игроки ({players.length})
+              </button>
+              <span className="text-neutral-700">•</span>
+              <button
+                onClick={() => setIsProjectsCatalogOpen(true)}
+                className="hover:text-emerald-400 transition-colors"
+              >
+                Стройки ({projects.length})
+              </button>
+              {isAdmin && (
+                <>
+                  <span className="text-neutral-700">•</span>
+                  <button
+                    onClick={() => setIsModerationOpen(true)}
+                    className="hover:text-amber-400 text-amber-500 font-bold transition-colors flex items-center gap-1"
+                  >
+                    <Inbox className="w-3 h-3" />
+                    <span>Предложка ({pendingProposalsCount})</span>
+                  </button>
+                </>
+              )}
+              <span className="text-neutral-700">•</span>
+              <button
+                onClick={handleToggleAdmin}
+                className="hover:text-amber-400 transition-colors flex items-center gap-1"
+              >
+                <ShieldCheck className="w-3 h-3 text-amber-600" />
+                <span>{isAdmin ? 'Админка (активна)' : 'Вход в админку'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </footer>

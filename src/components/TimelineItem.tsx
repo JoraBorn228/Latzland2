@@ -111,25 +111,39 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({
     <div className="relative pl-11 sm:pl-14 mb-3.5 group" id={`event-${event.id}`}>
       {/* Node marker on vertical timeline */}
       <div
-        className="absolute left-[13px] sm:left-[17px] top-4 w-4 h-4 rounded-full border-2 border-[#0c0c0c] transition-all duration-200 group-hover:scale-125 z-10"
+        className="absolute left-[13px] sm:left-[17px] top-5 w-4 h-4 rounded-full border-2 border-[#0c0c0c] transition-all duration-300 group-hover:scale-[1.35] z-10"
         style={{
           backgroundColor: category.color,
-          boxShadow: `0 0 0 2px ${category.color}, 0 0 12px ${category.markerShadow}`,
+          boxShadow: `0 0 0 2px ${category.color}40, 0 0 16px ${category.markerShadow}`,
         }}
+      />
+      {/* Pulse ring on hover */}
+      <div
+        className="absolute left-[11px] sm:left-[15px] top-3 w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ background: `radial-gradient(circle, ${category.color}15 0%, transparent 70%)` }}
       />
 
       {/* Main Event Card */}
       <div
-        className={`relative bg-[#141414] hover:bg-[#171717] border rounded-xl overflow-hidden transition-all duration-200 ${
+        className={`relative rounded-xl overflow-hidden transition-all duration-250 ${
           isOpen
-            ? 'border-white/20 shadow-lg bg-[#161616]'
-            : 'border-white/10 hover:border-white/15'
-        }`}
+            ? 'border-white/20 shadow-xl bg-[#161616]'
+            : 'border-white/8 hover:border-white/15 bg-[#131313] hover:bg-[#151515]'
+        } border`}
+        style={{
+          boxShadow: isOpen ? `0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px ${category.color}20` : undefined,
+        }}
       >
+        {/* Top accent line */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-60"
+          style={{ background: `linear-gradient(90deg, ${category.color}80, ${category.color}20, transparent)` }}
+        />
+
         {/* Left vertical colored accent stripe */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-1"
-          style={{ backgroundColor: category.color }}
+          className="absolute left-0 top-0 bottom-0 w-[3px]"
+          style={{ backgroundColor: category.color, opacity: 0.9 }}
         />
 
         {/* Card Header (clickable to collapse/expand) */}

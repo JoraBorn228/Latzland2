@@ -2,11 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // ─── Data Storage ──────────────────────────────────────────────────────────
 // In-memory store backed by JSON file persistence for reliability in AI Studio container
@@ -156,8 +153,8 @@ async function seedInitialDataIfNeeded(): Promise<void> {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function getAllRows(table: keyof Omit<DatabaseSchema, 'meta'>): unknown[] {
-  return Object.values(memoryDb[table]);
+function getAllRows(table: RecordTableKey): unknown[] {
+  return Object.values(memoryDb[table] as Record<string, unknown>);
 }
 
 type RecordTableKey = 'events' | 'players' | 'projects' | 'proposals' | 'onlineSnapshots';
@@ -183,7 +180,7 @@ async function startServer() {
   await seedInitialDataIfNeeded();
 
   const app = express();
-  const PORT = 3000;
+  const PORT = 8080;
 
   app.use(express.json({ limit: '50mb' }));
 
@@ -371,6 +368,13 @@ async function startServer() {
   const SERVER_IP = 'play.latzland.eu';
   const POLL_INTERVAL_MINUTES = 3;
   const POLL_INTERVAL_MS = POLL_INTERVAL_MINUTES * 60 * 1000;
+  // Минимальный пауза между реальными запросами к внешнему API статуса,
+  // чтобы частые ручные поллы с фронта не спамили mcstatus.io
+  const EXTERNAL_QUERY_THROTTLE_MS = 30 * 1000;
+  // Если игрока не видели дольше этого промежутка — считаем новой сессией
+  const SESSION_GAP_MS = 10 * 60 * 1000;
+  // Потолок начисляемого времени за один тик (защита от простоев/перезапусков)
+  const MAX_CREDIT_MS = POLL_INTERVAL_MS * 1.5;
 
   function getPlayerColor(username: string): string {
     const colors = [
@@ -483,9 +487,21 @@ async function startServer() {
     };
   }
 
+  async function queryMinecraftServerThrottled(): Promise<LiveServerFetchResult> {
+    // Reuse cached status if the last external query was recent (frontend polls every minute)
+    if (
+      lastLiveServerStatus.lastUpdated &&
+      Date.now() - Date.parse(lastLiveServerStatus.lastUpdated) < EXTERNAL_QUERY_THROTTLE_MS
+    ) {
+      return lastLiveServerStatus;
+    }
+    const status = await queryMinecraftServer();
+    return status;
+  }
+
   async function recordOnlineStatsTick(): Promise<void> {
     try {
-      const status = await queryMinecraftServer();
+      const status = await queryMinecraftServerThrottled();
       lastLiveServerStatus = status;
       const now = new Date();
       const nowIso = now.toISOString();
@@ -513,11 +529,27 @@ async function startServer() {
 
           if (existingKey) {
             const p = memoryDb.players[existingKey] as Record<string, unknown>;
-            const prevMins = Number(p.totalOnlineMinutes || 0);
-            p.totalOnlineMinutes = prevMins + POLL_INTERVAL_MINUTES;
+            const nowMs = now.getTime();
+
+            // Credit playtime based on ACTUAL elapsed time since the last credit,
+            // not a fixed interval — this keeps the counter accurate no matter how
+            // often the tick is invoked (server interval, frontend polls, etc.)
+            const lastSeenMs = p.lastSeen ? Date.parse(String(p.lastSeen)) : 0;
+            const lastCreditedMs = Number(p.lastCreditedAtMs || 0) || lastSeenMs;
+            const rawElapsedMs = lastCreditedMs > 0 ? nowMs - lastCreditedMs : POLL_INTERVAL_MS;
+            const creditedMs = Math.min(Math.max(rawElapsedMs, 0), MAX_CREDIT_MS);
+
+            p.totalOnlineMinutes = Number(
+              (Number(p.totalOnlineMinutes || 0) + creditedMs / 60000).toFixed(1)
+            );
+            p.lastCreditedAtMs = nowMs;
             p.lastSeen = nowIso;
-            p.sessionCount = Number(p.sessionCount || 0) + 1;
             if (!p.firstSeen) p.firstSeen = nowIso;
+
+            // Count a new session only when the player was away for a while
+            if (!lastSeenMs || nowMs - lastSeenMs > SESSION_GAP_MS) {
+              p.sessionCount = Number(p.sessionCount || 0) + 1;
+            }
           } else {
             // Automatically register new player discovered online
             const newId = `player-${cleanNick.toLowerCase()}`;
@@ -530,7 +562,8 @@ async function startServer() {
               registeredAt: nowIso.split('T')[0],
               firstSeen: nowIso,
               lastSeen: nowIso,
-              totalOnlineMinutes: POLL_INTERVAL_MINUTES,
+              lastCreditedAtMs: now.getTime(),
+              totalOnlineMinutes: 0,
               sessionCount: 1,
               isAutoRegistered: true,
             };
